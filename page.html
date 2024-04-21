@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
+<script>
+    <!-- Scripts used to update the data-->
+
+    function updateRam(chart){
+        const xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() {
+            if (this.readyState === 4 && this.status === 200) {
+                yRamValues = JSON.parse(this.responseText);
+                chart.data.datasets[0].data = yRamValues;
+                chart.update();
+            }
+        };
+        xhttp.open("GET", "http://localhost:8080/ram", true);
+        xhttp.send();
+    }
+
+    function getMaxRam(chart){
+        const xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() {
+            if (this.readyState === 4 && this.status === 200) {
+                chart.options.scales.yAxes[0].ticks.max = JSON.parse(this.responseText);
+                chart.update();
+            }
+        };
+        xhttp.open("GET", "http://localhost:8080/maxram", true);
+        xhttp.send();
+    }
+
+    function updateRom(chart){
+        const xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() {
+            if (this.readyState === 4 && this.status === 200) {
+                let data = JSON.parse(this.responseText);
+                chart.data.datasets[0].data = [data[2], data[1]];
+                chart.options.title.text = "ROM Usage: " + data[3] + "%";
+                chart.update();
+            }
+        };
+        xhttp.open("GET", "http://localhost:8080/rom", true);
+        xhttp.send();
+    }
+
+    function updateTime(){
+        const xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() {
+            if (this.readyState === 4 && this.status === 200) {
+                document.getElementById("time").innerHTML = this.responseText;
+            }
+        };
+        xhttp.open("GET", "http://localhost:8080/time", true);
+        xhttp.send();
+    }
+
+    function updateCPU(chart){
+        const xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() {
+            if (this.readyState === 4 && this.status === 200) {
+                yCPUValues = JSON.parse(this.responseText);
+                chart.data.datasets[0].data = yCPUValues;
+                chart.update();
+            }
+        };
+        xhttp.open("GET", "http://localhost:8080/cpu", true);
+        xhttp.send();
+    }
+
+</script>
+
+<body>
+    <div>
+        <h1 style="text-align: center">System Monitor</h1>
+    </div>
+
+    <div style="width: 100%; display: grid; grid-template-columns: repeat(2, 1fr); grid-gap: 10px; text-align: center;">
+        <div style="text-align: center;">
+            <canvas id="ramChart" style="max-width: 100%;"></canvas>
+        </div>
+        <div style="text-align: center;">
+            <canvas id="cpuChart" style="max-width: 100%;"></canvas>
+        </div>
+        <div style="text-align: center;">
+            <canvas id="romChart" style="max-width: 100%;"></canvas>
+        </div>
+        <div style="text-align: center; display: flex; justify-content: center; align-items: center;">
+            <h1>Current time:<br><span id = "time">14:00:00</span></h1>
+        </div>
+    </div>
+
+    <script>
+        const xValues = [-20, -19, -18, -17, -16, -15, -14, -13, -12, -11, -10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0];
+        let yRamValues = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        let yCPUValues = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+        let ramChart = new Chart("ramChart", {
+            type: "line",
+            data: {
+                labels: xValues,
+                datasets: [{
+                    fill: false,
+                    lineTension: 0,
+                    backgroundColor: "rgba(0,0,255,1.0)",
+                    borderColor: "rgba(0,0,255,0.1)",
+                    data: yRamValues
+                }]
+            },
+            options: {
+                legend: {
+                    display: false,
+                },
+                scales: {
+                    yAxes: [{ticks: {min: 0, max: 1}, scaleLabel: {display: true, labelString: 'Usage (GB)'}},
+                        {ticks: {min: 0, max: 100}, scaleLabel: {display: true, labelString: 'Usage (%)'}, position: 'right', id: 'y-axis-2' }],
+                    xAxes: [{scaleLabel: {display: true, labelString: 'Time (s)'}}]
+                },
+                title: {
+                    display: true,
+                    text: 'RAM Usage'
+                },
+                tooltips: {
+                    enabled: false
+                }
+            }
+        });
+
+        let cpuChart = new Chart("cpuChart", {
+            type: "line",
+            data: {
+                labels: xValues,
+                datasets: [{
+                    fill: false,
+                    lineTension: 0,
+                    backgroundColor: "rgba(0,0,255,1.0)",
+                    borderColor: "rgba(0,0,255,0.1)",
+                    data: yCPUValues
+                }]
+            },
+            options: {
+                legend: {
+                    display: false,
+                },
+                scales: {
+                    yAxes: [{ticks: {min: 0, max: 100}, scaleLabel: {display: true, labelString: 'Usage (%)'}}],
+                    xAxes: [{scaleLabel: {display: true, labelString: 'Time (s)'}}]
+                },
+                title: {
+                    display: true,
+                    text: 'CPU Usage'
+                },
+                tooltips: {
+                    enabled: false
+                },
+                animation: {
+                    duration: 0
+                }
+            }
+        });
+
+        let romChart = new Chart("romChart", {
+            type: "doughnut",
+            data: {
+                labels: ["Used", "Free"],
+                datasets: [{
+                    backgroundColor: ["rgba(0,0,150,1.0)", "rgba(0,150,0,1.0)"],
+                    data: [1, 1]
+                }]
+            },
+            options: {
+                title: {
+                    display: true,
+                    text: 'ROM Usage'
+                },
+                tooltips: {
+                    //add "GB" to the end of the value
+                    callbacks: {
+                        label: function(tooltipItem, data) {
+                            return data.labels[tooltipItem.index] + ": " + data.datasets[0].data[tooltipItem.index] + " GB";
+                        }
+                    }
+                }
+
+            }
+        });
+
+        <!--Initial data getters-->
+        updateRom(romChart);
+        updateRam(ramChart);
+        getMaxRam(ramChart);
+        updateCPU(cpuChart);
+        updateTime();
+
+        <!--Set up the interval for updating the data-->
+        setInterval(updateRam, 1000, ramChart);
+        setInterval(updateCPU, 1000, cpuChart);
+        setInterval(updateRom, 10000, romChart);
+        setInterval(updateTime, 500);
+    </script>
+</body>
+
+</html>
+
+
